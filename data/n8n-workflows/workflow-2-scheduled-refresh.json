@@ -1,0 +1,64 @@
+{
+  "name": "SENTINEL — Workflow 2: Nightly Refresh",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 20 * * *" }] }
+      },
+      "id": "cron-trigger",
+      "name": "Cron 02:00 IST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT run_id FROM runs WHERE status = 'completed' AND (updated_at < NOW() - INTERVAL '24 hours' OR updated_at IS NULL) LIMIT 10;",
+        "options": {}
+      },
+      "id": "query-stale-runs",
+      "name": "Query Stale Runs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [480, 300],
+      "credentials": { "postgres": { "id": "pg-creds", "name": "SENTINEL Postgres" } }
+    },
+    {
+      "parameters": {
+        "url": "=http://api:8000/run/start",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "run_id", "value": "={{ $json.run_id }}" },
+            { "name": "mode", "value": "refresh" }
+          ]
+        }
+      },
+      "id": "refresh-run",
+      "name": "Refresh Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [710, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "webhookUri": "YOUR_SLACK_WEBHOOK_URL",
+        "text": "=🌙 SENTINEL Nightly Refresh started for {{ $('Query Stale Runs').all().length }} datasets at {{ new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'}) }}"
+      },
+      "id": "slack-notify",
+      "name": "Slack Notify",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Cron 02:00 IST": { "main": [[{ "node": "Query Stale Runs", "type": "main", "index": 0 }]] },
+    "Query Stale Runs": { "main": [[{ "node": "Refresh Run", "type": "main", "index": 0 }]] },
+    "Refresh Run": { "main": [[{ "node": "Slack Notify", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}

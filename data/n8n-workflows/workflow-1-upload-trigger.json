@@ -1,0 +1,84 @@
+{
+  "name": "SENTINEL — Workflow 1: Upload Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n/upload",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-upload",
+      "name": "Upload Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst runId = body.run_id || require('crypto').randomUUID();\nconst files = body.files || [];\nreturn [{ json: { run_id: runId, files, status: 'received', ts: new Date().toISOString() } }];"
+      },
+      "id": "parse-upload",
+      "name": "Parse Upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO runs (run_id, status, config, dataset_path, created_at) VALUES ('{{ $json.run_id }}', 'queued', '{}', '/data/uploads/{{ $json.run_id }}', NOW()) ON CONFLICT (run_id) DO NOTHING;",
+        "options": {}
+      },
+      "id": "insert-postgres",
+      "name": "Insert Run Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [710, 300],
+      "credentials": {
+        "postgres": {
+          "id": "pg-creds",
+          "name": "SENTINEL Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/run/start",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "run_id", "value": "={{ $('Parse Upload').first().json.run_id }}" },
+            { "name": "dataset_path", "value": "=/data/uploads/{{ $('Parse Upload').first().json.run_id }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "start-pipeline",
+      "name": "Start Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [940, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ run_id: $('Parse Upload').first().json.run_id, status: 'queued', message: 'Pipeline started' }) }}",
+        "options": { "responseCode": 202 }
+      },
+      "id": "respond-202",
+      "name": "Respond 202",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1170, 300]
+    }
+  ],
+  "connections": {
+    "Upload Webhook": { "main": [[{ "node": "Parse Upload", "type": "main", "index": 0 }]] },
+    "Parse Upload": { "main": [[{ "node": "Insert Run Record", "type": "main", "index": 0 }]] },
+    "Insert Run Record": { "main": [[{ "node": "Start Pipeline", "type": "main", "index": 0 }]] },
+    "Start Pipeline": { "main": [[{ "node": "Respond 202", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}

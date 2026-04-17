@@ -1,0 +1,64 @@
+{
+  "name": "SENTINEL — Workflow 4: Run Complete Notifier",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n/run-complete",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "complete-webhook",
+      "name": "Run Complete Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $input.first().json.body || $input.first().json;\nconst kpi = p.kpi_summary || {};\nreturn [{ json: { run_id: p.run_id, top_segment: p.top_segment || 'N/A', forecast_accuracy: p.forecast_accuracy || 'N/A', revenue_30d: kpi.total_forecast_revenue_30d || 0, num_segments: kpi.num_segments || 0, anomaly_count: kpi.anomaly_count || 0, ts: new Date().toISOString() } }];"
+      },
+      "id": "parse-complete",
+      "name": "Parse Completion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "webhookUri": "YOUR_SLACK_WEBHOOK_URL",
+        "text": "=✅ *SENTINEL Pipeline Complete*\n• Run: `{{ $json.run_id.substring(0,8) }}`\n• 30d Revenue Forecast: *R$ {{ Number($json.revenue_30d).toLocaleString('en-IN') }}*\n• Top Segment: *{{ $json.top_segment }}*\n• Forecast Accuracy: *{{ $json.forecast_accuracy }}*\n• Segments: {{ $json.num_segments }} | Anomalies: {{ $json.anomaly_count }}\n• 📄 Report: http://localhost:3000/run/{{ $json.run_id }}"
+      },
+      "id": "slack-complete",
+      "name": "Slack Complete",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [710, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE runs SET status = 'completed', completed_at = NOW(), kpi_summary = '{{ JSON.stringify($json) }}'::jsonb WHERE run_id = '{{ $json.run_id }}';",
+        "options": {}
+      },
+      "id": "update-db",
+      "name": "Update Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [710, 400],
+      "credentials": { "postgres": { "id": "pg-creds", "name": "SENTINEL Postgres" } }
+    }
+  ],
+  "connections": {
+    "Run Complete Webhook": { "main": [[{ "node": "Parse Completion", "type": "main", "index": 0 }]] },
+    "Parse Completion": {
+      "main": [[
+        { "node": "Slack Complete", "type": "main", "index": 0 },
+        { "node": "Update Postgres", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}

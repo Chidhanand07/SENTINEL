@@ -1,0 +1,64 @@
+{
+  "name": "SENTINEL — Workflow 5: Human Feedback Relay",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n/feedback",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "feedback-webhook",
+      "name": "Feedback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $input.first().json.body || $input.first().json;\nreturn [{ json: { run_id: p.run_id, node_name: p.node_name || 'CleaningNode', constraint_text: p.constraint_text || '', ts: new Date().toISOString() } }];"
+      },
+      "id": "parse-feedback",
+      "name": "Parse Feedback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://api:8000/feedback/{{ $json.run_id }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "inject_at", "value": "={{ $json.node_name }}" },
+            { "name": "message", "value": "={{ $json.constraint_text }}" }
+          ]
+        }
+      },
+      "id": "inject-feedback",
+      "name": "Inject to Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [710, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "webhookUri": "YOUR_SLACK_WEBHOOK_URL",
+        "text": "=🔄 *SENTINEL Pipeline Resumed*\n• Constraint: _{{ $('Parse Feedback').first().json.constraint_text }}_\n• Node: `{{ $('Parse Feedback').first().json.node_name }}`\n• Run: `{{ $('Parse Feedback').first().json.run_id.substring(0,8) }}`"
+      },
+      "id": "slack-resumed",
+      "name": "Slack Resumed",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [940, 300]
+    }
+  ],
+  "connections": {
+    "Feedback Webhook": { "main": [[{ "node": "Parse Feedback", "type": "main", "index": 0 }]] },
+    "Parse Feedback": { "main": [[{ "node": "Inject to Pipeline", "type": "main", "index": 0 }]] },
+    "Inject to Pipeline": { "main": [[{ "node": "Slack Resumed", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}

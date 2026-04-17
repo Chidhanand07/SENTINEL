@@ -1,0 +1,110 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentinel-api"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    # ── Web framework ──────────────────────────────────────────
+    "fastapi==0.111.1",
+    "uvicorn[standard]==0.30.1",
+    "python-multipart==0.0.9",
+    "websockets==12.0",
+
+    # ── Database ───────────────────────────────────────────────
+    "asyncpg==0.29.0",
+    "sqlalchemy[asyncio]==2.0.30",
+    "alembic==1.13.1",
+    "psycopg2-binary==2.9.9",
+
+    # ── Redis + ARQ ────────────────────────────────────────────
+    "redis[hiredis]==5.0.4",
+    "arq==0.25.0",
+
+    # ── Auth ───────────────────────────────────────────────────
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+
+    # ── Config ────────────────────────────────────────────────
+    "pydantic==2.7.1",
+    "pydantic-settings==2.3.0",
+
+    # ── HTTP client ────────────────────────────────────────────
+    "httpx==0.27.0",
+    "anyio==4.4.0",
+
+    # ── Storage ────────────────────────────────────────────────
+    "minio==7.2.7",
+    "boto3==1.34.96",
+
+    # ── ML / Data ──────────────────────────────────────────────
+    "pandas==2.2.2",
+    "numpy==1.26.4",
+    "scikit-learn==1.4.2",
+    "scipy==1.13.0",
+
+    # ── Forecasting ────────────────────────────────────────────
+    "prophet==1.1.5",
+    "statsmodels==0.14.2",
+    "lightgbm==4.3.0",
+    "optuna==3.6.1",
+
+    # ── Profiling ─────────────────────────────────────────────
+    "ydata-profiling>=4.8.3",
+
+    # ── SHAP ───────────────────────────────────────────────────
+    "shap==0.45.1",
+
+    # ── LangChain / LangGraph ──────────────────────────────────
+    "langchain==0.2.16",
+    "langchain-core==0.2.38",
+    "langchain-community==0.2.16",
+    "langgraph==0.1.19",
+    "langchain-google-genai==1.0.10",
+
+    # ── MLflow ─────────────────────────────────────────────────
+    "mlflow==2.13.0",
+
+    # ── PDF generation ─────────────────────────────────────────
+    "weasyprint==62.3",
+    "jinja2==3.1.4",
+
+    # ── Plotting (server-side) ────────────────────────────────
+    "plotly==5.22.0",
+    "kaleido==0.2.1",
+    "matplotlib==3.8.4",
+
+    # ── Fuzzy matching ────────────────────────────────────────
+    "thefuzz==0.22.1",
+    "python-Levenshtein==0.25.1",
+
+    # ── Logging ───────────────────────────────────────────────
+    "structlog==24.2.0",
+
+    # ── Misc ──────────────────────────────────────────────────
+    "python-slugify==8.0.4",
+    "tenacity==8.3.0",
+    "orjson==3.10.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.4.5",
+    "mypy==1.10.0",
+    "pytest==8.2.2",
+    "pytest-asyncio==0.23.7",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true

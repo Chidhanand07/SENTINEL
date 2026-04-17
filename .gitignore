@@ -1,19 +1,18 @@
 .DS_Store
 .env
 .env.*
-!.env.example
 
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .venv/
 venv/
+*.egg-info/
 
-# Node / Next
+# Node
 node_modules/
 .next/
 dist/
@@ -22,7 +21,12 @@ dist/
 # Runtime data
 data/uploads/
 
-# Local tooling
-.vscode/
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs
 .idea/
-.claude/
+.vscode/
