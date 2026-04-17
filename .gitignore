@@ -1,0 +1,28 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node / Next
+node_modules/
+.next/
+dist/
+*.tsbuildinfo
+
+# Runtime data
+data/uploads/
+
+# Local tooling
+.vscode/
+.idea/
+.claude/
